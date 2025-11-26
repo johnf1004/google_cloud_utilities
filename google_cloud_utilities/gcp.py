@@ -122,7 +122,7 @@ def create_bq_table(table_id, partition_col, partition_type, schema, bq_client, 
         )
     )
 
-def create_bq_table_from_file(file, table_id, field_delimiter, partition_col, partition_type, schema, bq_client, partition_expiration=None):
+def create_bq_table_from_file(file, table_id, field_delimiter, partition_col, partition_type, schema, bq_client, partition_expiration=None, ignore_unknown_values=False):
     """
     Create a bigquery table from a local csv file
 
@@ -132,6 +132,9 @@ def create_bq_table_from_file(file, table_id, field_delimiter, partition_col, pa
     :param field_delimiter: Separator character for csv
     :param bq_client: Bigquery client object
     :param partition_col: Column to use as partition in the table
+    :param partition_type: Type of partition to use (bigquery.TimePartitioningType.MONTH or bigquery.TimePartitioningType.DAY)
+    :param partition_expiration: Milliseconds until a partition expires 
+    :param ignore_unknown_values: Whether to ignore unknown values in the data vs the schema - True will succeed the load even if there are unknown values
     """
 
     # Configure schema
@@ -139,7 +142,8 @@ def create_bq_table_from_file(file, table_id, field_delimiter, partition_col, pa
         source_format=bigquery.SourceFormat.CSV,
         skip_leading_rows=1, schema=schema,
         write_disposition=bigquery.job.WriteDisposition.WRITE_APPEND,
-        field_delimiter=field_delimiter
+        field_delimiter=field_delimiter,
+        ignore_unknown_values=ignore_unknown_values
     )
 
     if partition_col:
@@ -147,6 +151,9 @@ def create_bq_table_from_file(file, table_id, field_delimiter, partition_col, pa
             type_=partition_type,
             field=partition_col,
             expiration_ms=partition_expiration)
+
+    table = bq_client.get_table(table_id)
+    rows_before = table.num_rows
 
     # Set up job
     with open(file, "rb") as source_file:
@@ -157,17 +164,18 @@ def create_bq_table_from_file(file, table_id, field_delimiter, partition_col, pa
     except BadRequest:
         logging.error(f"Job failed, errors collection = {job.errors}")
         raise
-
-
-    table = bq_client.get_table(table_id)  # Make an API request.
+    
+    table = bq_client.get_table(table_id)
+    rows_after = table.num_rows
+    
     logger.info(
         "Loaded {} rows and {} columns to {}".format(
-            table.num_rows, len(table.schema), table_id
+            rows_after-rows_before, len(table.schema), table_id
         )
     )
 
 
-def create_bq_table_from_file_json(table_id, schema, bq_client, partition_col=None, file=None, uri=None):
+def create_bq_table_from_file_json(table_id, schema, bq_client, partition_col=None, file=None, uri=None, partition_expiration=None, ignore_unknown_values=True):
     """
     Create a bigquery table from a local csv file
 
@@ -185,13 +193,18 @@ def create_bq_table_from_file_json(table_id, schema, bq_client, partition_col=No
     job_config = bigquery.LoadJobConfig(
         source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
         schema=schema,
-        write_disposition=bigquery.job.WriteDisposition.WRITE_APPEND
+        write_disposition=bigquery.job.WriteDisposition.WRITE_APPEND,
+        ignore_unknown_values=ignore_unknown_values
     )
 
     if partition_col:
         job_config.time_partitioning = bigquery.TimePartitioning(
             type_=bigquery.TimePartitioningType.DAY,
-            field=partition_col)
+            field=partition_col,
+            expiration_ms=partition_expiration)
+
+    table = bq_client.get_table(table_id)
+    rows_before = table.num_rows
 
     if file:
         # Set up job
@@ -215,10 +228,12 @@ def create_bq_table_from_file_json(table_id, schema, bq_client, partition_col=No
             logging.error(f"Job failed, errors collection = {job.errors}")
             raise
 
-    table = bq_client.get_table(table_id)  # Make an API request.
+    table = bq_client.get_table(table_id)
+    rows_after = table.num_rows
+    
     logger.info(
         "Loaded {} rows and {} columns to {}".format(
-            table.num_rows, len(table.schema), table_id
+            rows_after-rows_before, len(table.schema), table_id
         )
     )
 
