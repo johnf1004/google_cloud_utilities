@@ -407,8 +407,7 @@ def append_rows_bq_json(rows_to_insert, table_id, bq_client, labels, schema, par
         source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
         write_disposition=bigquery.job.WriteDisposition.WRITE_APPEND,
         labels=labels,
-        schema=schema,
-        labels=labels
+        schema=schema
     )
 
     job = bq_client.load_table_from_json(
