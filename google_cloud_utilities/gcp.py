@@ -122,7 +122,7 @@ def create_bq_table(table_id, partition_col, partition_type, schema, bq_client, 
         )
     )
 
-def create_bq_table_from_file(file, table_id, field_delimiter, partition_col, partition_type, schema, bq_client, partition_expiration=None, ignore_unknown_values=False):
+def create_bq_table_from_file(file, table_id, field_delimiter, partition_col, partition_type, schema, bq_client, partition_expiration=None, ignore_unknown_values=False, labels={}):
     """
     Create a bigquery table from a local csv file
 
@@ -143,7 +143,8 @@ def create_bq_table_from_file(file, table_id, field_delimiter, partition_col, pa
         skip_leading_rows=1, schema=schema,
         write_disposition=bigquery.job.WriteDisposition.WRITE_APPEND,
         field_delimiter=field_delimiter,
-        ignore_unknown_values=ignore_unknown_values
+        ignore_unknown_values=ignore_unknown_values,
+        labels=labels
     )
 
     if partition_col:
@@ -175,7 +176,7 @@ def create_bq_table_from_file(file, table_id, field_delimiter, partition_col, pa
     )
 
 
-def create_bq_table_from_file_json(table_id, schema, bq_client, partition_col=None, file=None, uri=None, partition_expiration=None, ignore_unknown_values=True):
+def create_bq_table_from_file_json(table_id, schema, bq_client, partition_col=None, file=None, uri=None, partition_expiration=None, ignore_unknown_values=True, labels={}):
     """
     Create a bigquery table from a local csv file
 
@@ -194,7 +195,8 @@ def create_bq_table_from_file_json(table_id, schema, bq_client, partition_col=No
         source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
         schema=schema,
         write_disposition=bigquery.job.WriteDisposition.WRITE_APPEND,
-        ignore_unknown_values=ignore_unknown_values
+        ignore_unknown_values=ignore_unknown_values,
+        labels=labels
     )
 
     if partition_col:
@@ -405,7 +407,8 @@ def append_rows_bq_json(rows_to_insert, table_id, bq_client, labels, schema, par
         source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
         write_disposition=bigquery.job.WriteDisposition.WRITE_APPEND,
         labels=labels,
-        schema=schema
+        schema=schema,
+        labels=labels
     )
 
     job = bq_client.load_table_from_json(
