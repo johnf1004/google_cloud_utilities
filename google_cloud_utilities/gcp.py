@@ -6,11 +6,12 @@ import pandas as pd
 from dateutil import parser
 import base64
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import google.oauth2.id_token
 import google.auth.transport.requests
 from google.api_core.exceptions import BadRequest
 import google.auth
+from google.cloud import iam_credentials_v1
 
 logger = logging.getLogger(__name__)
 
@@ -734,3 +735,36 @@ def check_instance_info(instances_client, zone, instance_name=None, internal_ip=
             
 
 
+
+def _generate_iap_jwt_payload(service_account_email: str, resource_url: str) -> str:
+    """
+    Create the JWT payload IAP expects for service-account signed JWT auth.
+    resource_url should be like: https://your-host/*  (or exact URL)
+    """
+    iat = datetime.now(tz=timezone.utc)
+    exp = iat + timedelta(seconds=3600)
+
+    payload = {
+        "iss": service_account_email,
+        "sub": service_account_email,
+        "aud": resource_url,
+        "iat": int(iat.timestamp()),
+        "exp": int(exp.timestamp()),
+    }
+    return json.dumps(payload)
+
+
+def _get_iap_signed_jwt(service_account_email: str, resource_url: str) -> str:
+    """
+    Signs the JWT payload using the IAM Credentials API.
+    Requires the caller (your ADC identity) to have roles/iam.serviceAccountTokenCreator
+    on the target service account.
+    """
+    source_credentials, _ = google.auth.default()
+    iam_client = iam_credentials_v1.IAMCredentialsClient(credentials=source_credentials)
+
+    name = iam_client.service_account_path("-", service_account_email)
+    payload = _generate_iap_jwt_payload(service_account_email, resource_url)
+
+    resp = iam_client.sign_jwt(name=name, payload=payload)
+    return resp.signed_jwt

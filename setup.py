@@ -12,12 +12,12 @@ URL = 'https://github.com/johnf1004/google_cloud_utilities'
 EMAIL = 'johnf1004@yahoo.co.uk'
 AUTHOR = 'John Foley'
 REQUIRES_PYTHON = '>=3.9.7'
-VERSION = '0.8.6'
+VERSION = '0.8.7'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
     'google-cloud-bigquery>=3.4.2', 'google-cloud-secret-manager>=2.4.0', 'pandas>=2.2.2',
-    'python-dateutil>=2.8.2', 'google-auth>=2.30.0'
+    'python-dateutil>=2.8.2', 'google-auth>=2.30.0', 'google-cloud-iam'
 ]
 
 here = os.path.abspath(os.path.dirname(__file__))
