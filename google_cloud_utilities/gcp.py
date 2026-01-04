@@ -764,7 +764,7 @@ def get_iap_signed_jwt(service_account_email: str, resource_url: str) -> str:
     iam_client = iam_credentials_v1.IAMCredentialsClient(credentials=source_credentials)
 
     name = iam_client.service_account_path("-", service_account_email)
-    payload = _generate_iap_jwt_payload(service_account_email, resource_url)
+    payload = generate_iap_jwt_payload(service_account_email, resource_url)
 
     resp = iam_client.sign_jwt(name=name, payload=payload)
     return resp.signed_jwt
